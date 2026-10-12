@@ -8,6 +8,7 @@
 // contributors have withdrawn.
 
 import { loadChords, chordAt, chordCount } from "./chords.js";
+import { GRIDS } from "./grid.js";
 
 const INDEX_URL = "./codebooks/index.json";
 const HUB = "https://localcontextshub.org";
@@ -16,6 +17,8 @@ const MAX_ITEMS = 250000;
 const MAX_PARTS = 8;
 const MAX_ITEMS_PER_PLACE = 24;
 const LABEL_TIMEOUT_MS = 4000;
+const FETCH_TIMEOUT_MS = 15000;
+const MAX_MANIFEST_BYTES = 30e6;
 
 const clip = (value, length) => String(value == null ? "" : value).slice(0, length);
 
@@ -26,17 +29,33 @@ function absolute(url, base) {
 }
 
 async function fetchJSON(url) {
-  let response;
+  const stop = new AbortController();
+  const timer = setTimeout(() => stop.abort(), FETCH_TIMEOUT_MS);
   try {
-    response = await fetch(url, { cache: "no-cache" });
-  } catch (error) {
-    throw new Error("It couldn’t be reached. Its host may be down, or may not allow other sites to read it.");
-  }
-  if (!response.ok) throw new Error(`Its host answered with an error (${response.status}).`);
-  try {
-    return await response.json();
-  } catch (error) {
-    throw new Error("What came back isn’t a codebook manifest.");
+    let response;
+    try {
+      response = await fetch(url, { cache: "no-cache", signal: stop.signal });
+    } catch (error) {
+      throw new Error(stop.signal.aborted
+        ? "Its host took too long to answer."
+        : "It couldn’t be reached. Its host may be down, or may not allow other sites to read it.");
+    }
+    if (!response.ok) throw new Error(`Its host answered with an error (${response.status}).`);
+    if (Number(response.headers.get("content-length")) > MAX_MANIFEST_BYTES) throw new Error("It is larger than this page will load.");
+    let text;
+    try {
+      text = await response.text();
+    } catch (error) {
+      throw new Error("Its host took too long to answer.");
+    }
+    if (text.length > MAX_MANIFEST_BYTES) throw new Error("It is larger than this page will load.");
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      throw new Error("What came back isn’t a codebook manifest.");
+    }
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -55,17 +74,33 @@ export async function loadIndex() {
         id: clip(entry.id, 60),
         title: clip(entry.title, 80),
         manifest: absolute(entry.manifest, new URL(INDEX_URL, location.href)),
+        // The list can record a seasonal codebook's months, so that it is
+        // left off the menu out of season rather than refused when chosen.
+        months: Array.isArray(entry.months) ? entry.months.map(Number) : null,
       })),
+      // A withdrawal names a codebook by id, by its manifest's address, or both.
       revoked: (raw.revoked || []).map((entry) => ({
-        id: clip(entry.id, 60), version: entry.version ? clip(entry.version, 20) : null, reason: clip(entry.reason, 300),
+        id: clip(entry.id, 60),
+        manifest: entry.manifest ? absolute(entry.manifest, new URL(INDEX_URL, location.href)) : null,
+        version: entry.version ? clip(entry.version, 20) : null,
+        reason: clip(entry.reason, 300),
       })),
     };
   }
   return index;
 }
 
-function revocation(id, version) {
-  return index && index.revoked.find((entry) => entry.id === id && (!entry.version || entry.version === version));
+function revocation(id, version, url) {
+  return index.revoked.find((entry) =>
+    ((entry.id && entry.id === id) || (entry.manifest && entry.manifest === url)) && (!entry.version || entry.version === version));
+}
+
+const inSeason = (months) => !months || !months.length || months.includes(new Date().getMonth() + 1);
+
+// The codebooks the menu should offer today: not withdrawn outright, and
+// not out of season.
+export function offered() {
+  return index.codebooks.filter((entry) => !revocation(entry.id, null, entry.manifest) && inSeason(entry.months));
 }
 
 // ---------------------------------------------------------------------------
@@ -76,6 +111,7 @@ function readItems(list, renderer, base) {
   if (!Array.isArray(list) || list.length < 2) throw new Error("A codebook needs at least two items.");
   if (list.length > MAX_ITEMS) throw new Error("That codebook has more items than this page will load.");
   return list.map((raw, i) => {
+    if (!raw || typeof raw !== "object") throw new Error(`Item ${i} isn’t an item.`);
     const item = { name: clip(raw.label ?? raw.name ?? raw.id ?? i, 60), renderer };
     if (renderer === "samples") item.audio = absolute(raw.audio, base);
     if (renderer === "ratios") item.ratios = readRatios(raw.ratios);
@@ -100,10 +136,31 @@ function readRatios(list) {
   });
 }
 
+// A fixed cell size: one H3 level, or a level for each grid by name.
+function readResolution(raw) {
+  const level = (value) => (Number.isInteger(value) && value >= 0 && value <= 30 ? value : null);
+  if (raw == null) return null;
+  if (typeof raw === "object") {
+    const each = { h3: level(raw.h3), a5: level(raw.a5) };
+    if (each.h3 === null && each.a5 === null) throw new Error("Its cell size isn’t one this page can read.");
+    return each;
+  }
+  if (level(raw) === null || raw > 15) throw new Error("Its cell size isn’t one this page can read.");
+  return raw;
+}
+
+// "fill" (the default), a whole number, or one of those for each grid.
+function readSpread(raw) {
+  const one = (value) => (Number.isInteger(value) && value >= 1 && value <= 1e6 ? value : "fill");
+  if (raw && typeof raw === "object") return { h3: one(raw.h3), a5: one(raw.a5) };
+  return one(raw);
+}
+
 // Turns a manifest into what the rest of the page uses. `positions` is one
 // entry per kind of item a place gets; a plain codebook has a single
 // position that is read as many times as its address asks for.
-async function read(manifest, url) {
+async function read(manifest, url, listed) {
+  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) throw new Error("What came back isn’t a codebook manifest.");
   const renderer = manifest.renderer;
   if (!RENDERERS.includes(renderer)) throw new Error(`It asks for a renderer this page doesn’t have (“${clip(renderer, 30)}”).`);
   if (!/^[a-z0-9][a-z0-9-]{0,59}$/.test(manifest.id || "")) throw new Error("It has no usable id.");
@@ -112,12 +169,16 @@ async function read(manifest, url) {
   const address = manifest.address || {};
   const positions = [];
   if (renderer === "guitar") {
+    // The guitar renderer and its table belong to this page's own guitar
+    // codebook; a codebook from elsewhere can't bring a table of its own.
+    if (!listed || new URL(url).origin !== location.origin) throw new Error("It asks for a renderer that only this page’s own guitar codebook uses.");
     // The what3chords table is too big to write out item by item.
-    await loadChords(absolute(manifest.items.table, url));
+    await loadChords(absolute(manifest.items && manifest.items.table, url));
     positions.push({ title: "", count: chordCount(), at: (i) => ({ ...chordAt(i), renderer }) });
   } else if (Array.isArray(manifest.parts)) {
     if (manifest.parts.length < 2 || manifest.parts.length > MAX_PARTS) throw new Error("It has too many or too few parts.");
     for (const part of manifest.parts) {
+      if (!part || typeof part !== "object") throw new Error("One of its parts isn’t a part.");
       const kind = part.renderer || renderer;
       if (!RENDERERS.includes(kind) || kind === "guitar") throw new Error("One of its parts asks for a renderer this page doesn’t have.");
       const items = readItems(part.items, kind, url);
@@ -139,7 +200,9 @@ async function read(manifest, url) {
     id: manifest.id,
     version: manifest.version,
     title: clip(manifest.title, 80) || manifest.id,
-    contributors: (manifest.contributors || []).slice(0, 20).map((person) => ({ name: clip(person.name, 80), role: clip(person.role, 80) })),
+    contributors: (Array.isArray(manifest.contributors) ? manifest.contributors : []).slice(0, 20)
+      .filter((person) => person && typeof person === "object")
+      .map((person) => ({ name: clip(person.name, 80), role: clip(person.role, 80) })),
     community: clip(manifest.community, 120),
     statement: clip(manifest.statement, 2000),
     demo: Boolean(manifest.demo),
@@ -153,7 +216,7 @@ async function read(manifest, url) {
     localContexts: local && /^[0-9a-f-]{36}$/i.test(local.projectId || "") ? {
       projectId: local.projectId.toLowerCase(),
       asOf: clip(local.asOf, 20),
-      labels: (local.labels || []).slice(0, 20).map((label) => (
+      labels: (Array.isArray(local.labels) ? local.labels : []).slice(0, 20).filter(Boolean).map((label) => (
         typeof label === "string" ? { name: clip(label, 80), text: "" } : { name: clip(label.name, 80), text: clip(label.text, 1000), community: clip(label.community, 120) }
       )),
     } : null,
@@ -164,12 +227,16 @@ async function read(manifest, url) {
     together: Boolean(address.together) && Array.isArray(manifest.parts),
     address: {
       items: Number.isInteger(address.items) ? Math.max(1, Math.min(MAX_ITEMS_PER_PLACE, address.items)) : null,
-      resolution: address.resolution ?? null,
+      resolution: readResolution(address.resolution),
       scramble: address.scramble !== false,
-      spread: address.spread ?? "fill",
+      spread: readSpread(address.spread),
     },
     // Renderer settings, all optional.
-    tuning: { base: Number(manifest.tuning && manifest.tuning.base) || 220, voice: clip(manifest.tuning && manifest.tuning.voice, 20) },
+    tuning: {
+      // Kept within what a loudspeaker can do with it.
+      base: Math.max(20, Math.min(2000, Number(manifest.tuning && manifest.tuning.base) || 220)),
+      voice: clip(manifest.tuning && manifest.tuning.voice, 20),
+    },
     beats: Number(manifest.beats) > 0 ? Math.min(32, Number(manifest.beats)) : null,
     fits: new Map(),
   };
@@ -179,10 +246,22 @@ async function read(manifest, url) {
 // to a listener.
 export async function loadCodebook(manifestUrl) {
   const url = absolute(manifestUrl, location.href);
-  await loadIndex().catch(() => null);
+  // Without the list there is no knowing what has been withdrawn.
+  await loadIndex();
   const manifest = await fetchJSON(url);
-  const codebook = await read(manifest, url);
-  const withdrawn = revocation(codebook.id, codebook.version);
+  let codebook;
+  try {
+    codebook = await read(manifest, url, index.codebooks.some((entry) => entry.manifest === url));
+  } catch (error) {
+    // Messages written above are meant to be read; anything else is the
+    // manifest being laid out in a way the reading code tripped over.
+    throw new Error(/^[A-Z]/.test(error.message) && !/^(Cannot|TypeError)/.test(error.message)
+      ? error.message : "Its manifest isn’t laid out the way this page expects.");
+  }
+  // Work out how it reads each grid now, so that a codebook that can't be
+  // fitted is refused here rather than half-way through being switched to.
+  for (const grid of Object.values(GRIDS)) fit(codebook, grid);
+  const withdrawn = revocation(codebook.id, codebook.version, url);
   if (withdrawn) {
     throw new Error(`This codebook has been withdrawn by its contributors and is no longer offered here.${withdrawn.reason ? ` ${withdrawn.reason}` : ""}`);
   }
@@ -230,20 +309,23 @@ export function fit(codebook, grid) {
     res = grid.maxRes;
     while (res > grid.minRes && grid.bound(res) > capacity) res--;
   } else {
-    const wanted = typeof address.resolution === "object" ? address.resolution[grid.id] : matchingResolution(grid, Number(address.resolution));
-    res = clamp(Number.isInteger(wanted) ? wanted : grid.maxRes);
+    const named = typeof address.resolution === "object";
+    const mine = named ? address.resolution[grid.id] : null;
+    const h3Level = named ? address.resolution.h3 : address.resolution;
+    res = clamp(mine !== null ? mine : h3Level !== null ? matchingResolution(grid, h3Level) : grid.maxRes);
     const size = BigInt(positions[0].count);
     radices = [size];
     while (radices.reduce((product, radix) => product * radix, 1n) < grid.bound(res) && radices.length < MAX_ITEMS_PER_PLACE) radices.push(size);
   }
   const capacity = radices.reduce((product, radix) => product * radix, 1n);
   const exact = grid.bound(res) <= capacity;
-  let spread = 1n;
+  // "fill" stretches the addresses evenly over the whole vocabulary. A
+  // declared number multiplies them instead (the guitar codebook does this
+  // to agree with what3chords), provided the result still fits.
   const declared = typeof address.spread === "object" ? address.spread[grid.id] : address.spread;
-  if (Number.isInteger(declared) && declared > 0) spread = BigInt(declared);
-  else if (exact) spread = capacity / grid.bound(res);
-  if (spread < 1n || grid.bound(res) * spread > capacity) spread = 1n;
-  const result = { res, radices, spread, capacity, exact, items: radices.length, areaM2: grid.areaM2(res) };
+  let spread = "fill";
+  if (Number.isInteger(declared) && grid.bound(res) * BigInt(declared) <= capacity) spread = BigInt(declared);
+  const result = { res, radices, spread, capacity, bound: grid.bound(res), exact, items: radices.length, areaM2: grid.areaM2(res) };
   codebook.fits.set(grid.id, result);
   return result;
 }
@@ -257,8 +339,11 @@ export function addressAt(codebook, grid, lat, lng) {
 // The items a place gets: its address, written out with one digit per
 // position (each position in its own base), each digit picking an item.
 export function soundsAt(codebook, grid, lat, lng) {
-  const { radices, spread, capacity } = fit(codebook, grid);
-  let n = (addressAt(codebook, grid, lat, lng) * spread) % capacity;
+  const { radices, spread, capacity, bound, exact } = fit(codebook, grid);
+  const address = addressAt(codebook, grid, lat, lng);
+  // Stretching by capacity/bound keeps distinct addresses distinct and
+  // reaches every item; multiplying by a whole number would skip some.
+  let n = !exact ? address % capacity : spread === "fill" ? (address * capacity) / bound : address * spread;
   const digits = new Array(radices.length);
   for (let i = radices.length - 1; i >= 0; i--) {
     digits[i] = Number(n % radices[i]);

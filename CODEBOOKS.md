@@ -84,7 +84,7 @@ A place's address is one large number. The codebook reads it as a few of its ite
 Two more options under `address`:
 
 - `"scramble": false` turns off the shuffle that makes neighbouring places sound unrelated. Without it, places close together sound alike and the sound changes gradually across the map.
-- `"spread"` is normally worked out for you: the address is multiplied up so that it ranges over your whole vocabulary rather than only the start of it. Give a number to fix it.
+- `"spread"` is normally worked out for you: the address is stretched evenly over your whole vocabulary, so that every item can be reached rather than only those at the start. Give a whole number to multiply by that instead.
 
 ## Versions
 
@@ -96,7 +96,7 @@ Labels are notices of protocol, not licences. The page shows them with your comm
 
 - **TK Non-Commercial** (or `download: false`): no download button for this vocabulary.
 - **TK Community Use Only**: the codebook is never put on the page's public list. It can still be opened by someone who has its address.
-- **TK Seasonal**: use `terms.months` to say when it is available.
+- **TK Seasonal**: use `terms.months` to say when it is available. Outside those months the page refuses to play it. If it is on the page's list, ask for the months to be recorded there too, so that it is left off the menu out of season.
 
 One limit, plainly: the Local Contexts Hub does not let web pages read it directly, so the page cannot fetch your current labels as it would like to. It tries, and when that fails it shows the copy in your manifest, says that it is a copy and from what date, and links to your project on the Hub. If you change your labels, update the copy.
 
@@ -110,7 +110,9 @@ To withdraw a codebook, take the manifest down. To stop the page offering copies
 {"id": "example-three-voice", "version": "1.0.0", "reason": "Withdrawn by its contributors."}
 ```
 
-Leave out `version` to withdraw every version.
+Leave out `version` to withdraw every version. An entry can also (or instead) give `manifest`, the address the codebook was served from.
+
+A codebook that is opened by its address rather than from the list is marked "unverified" on the page, because nobody has checked the names it gives.
 
 ## What this does not do
 

@@ -764,6 +764,7 @@ async function togglePlay() {
     // A vocabulary of recordings fetches only the ones this trip will play.
     if (voice) voice.prepare(state.route.stops.flatMap((stop) => stop.chords));
     await startAudio(() => player.play(song, state.cueStop * song.per));
+    if (voice && voice.failed) toast(`${voice.failed} of this trip’s recordings didn’t load, so there are gaps.`);
     // The route changed while the samples were still loading.
     if (request !== routeRequest) stopPlayback();
   }

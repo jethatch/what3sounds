@@ -41,9 +41,11 @@ export class Voice {
     this.limiter = new Tone.Limiter(-1.5).toDestination();
     this.output = new Tone.Gain(0.8).connect(this.limiter);
     this.reverb = makeReverb(1.8);
-    this.reverb.connect(new Tone.Gain(0.18).connect(this.output));
+    this.reverbLevel = new Tone.Gain(0.18).connect(this.output);
+    this.reverb.connect(this.reverbLevel);
     this.bus = new Tone.Gain(1).connect(this.output);
     this.bus.connect(this.reverb);
+    this.failed = 0; // recordings that wouldn't load, of those last asked for
     this.loaded = new Map(); // url -> AudioBuffer, for the samples asked for so far
     this.sources = new Set();
     this.pending = Promise.resolve();
@@ -56,7 +58,12 @@ export class Voice {
     this.tones.maxPolyphony = 48;
 
     // One percussive sound per name a rhythm item may ask for.
-    const filtered = (frequency, type) => new Tone.Filter(frequency, type).connect(this.bus);
+    this.filters = [];
+    const filtered = (frequency, type) => {
+      const filter = new Tone.Filter(frequency, type).connect(this.bus);
+      this.filters.push(filter);
+      return filter;
+    };
     this.hits = {
       clap: new Tone.NoiseSynth({ noise: { type: "pink" }, volume: -3, envelope: { attack: 0.001, decay: 0.09, sustain: 0, release: 0.02 } }).connect(filtered(1300, "bandpass")),
       shaker: new Tone.NoiseSynth({ noise: { type: "white" }, volume: -16, envelope: { attack: 0.001, decay: 0.04, sustain: 0, release: 0.01 } }).connect(filtered(6500, "highpass")),
@@ -70,12 +77,17 @@ export class Voice {
   }
 
   // Fetch whatever these items need before they can sound. Recordings are
-  // only ever fetched for the places actually being listened to.
+  // only ever fetched for the places actually being listened to. One that
+  // won't load (or takes too long) is left out and counted in `failed`;
+  // the rest still play.
   prepare(items) {
     const urls = [...new Set(items.filter((item) => item.renderer === "samples").map((item) => item.audio))];
-    this.pending = Promise.all(urls.map(async (url) => {
-      if (!this.loaded.has(url)) this.loaded.set(url, await loadBuffer(url));
-    }));
+    const patience = (promise) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error("slow")), 15000))]);
+    this.pending = Promise.allSettled(urls.map(async (url) => {
+      if (!this.loaded.has(url)) this.loaded.set(url, await patience(loadBuffer(url)));
+    })).then((results) => {
+      this.failed = results.filter((result) => result.status === "rejected").length;
+    });
     return this.pending;
   }
 
@@ -99,8 +111,10 @@ export class Voice {
       source.start(time, 0, seconds);
     } else if (item.renderer === "ratios") {
       const base = this.codebook.tuning.base;
-      const level = 0.75 / Math.sqrt(item.ratios.length);
-      this.tones.triggerAttackRelease(item.ratios.map((ratio) => base * ratio), Math.max(0.1, seconds * 0.92), time, level);
+      const pitches = item.ratios.map((ratio) => base * ratio).filter((hertz) => hertz >= 16 && hertz <= 16000);
+      if (!pitches.length) return;
+      const level = 0.75 / Math.sqrt(pitches.length);
+      this.tones.triggerAttackRelease(pitches, Math.max(0.1, seconds * 0.92), time, level);
     }
   }
 
@@ -134,6 +148,7 @@ export class Voice {
 
   dispose() {
     this.silence();
-    [this.tones, ...Object.values(this.hits), this.bus, this.reverb, this.output, this.limiter].forEach((node) => node.dispose());
+    [this.tones, ...Object.values(this.hits), ...this.filters, this.bus, this.reverb, this.reverbLevel, this.output, this.limiter]
+      .forEach((node) => node.dispose());
   }
 }

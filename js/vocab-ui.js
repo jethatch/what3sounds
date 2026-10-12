@@ -1,7 +1,7 @@
 // The parts of the interface both pages share: choosing a codebook, saying
 // whose it is and on what terms, and drawing one of its items.
 
-import { loadIndex, loadCodebook, loadLabels, conduct, credit, fit } from "./codebooks.js";
+import { loadIndex, offered, loadCodebook, loadLabels, conduct, credit, fit } from "./codebooks.js";
 import { chordDiagram } from "./diagram.js";
 import { formatArea } from "./grid.js";
 
@@ -68,9 +68,11 @@ export class Vocabulary {
   // first one on the list. A link's codebook that can't be had falls back
   // to the first on the list, and says why.
   async start(ref) {
-    const index = await loadIndex();
-    // A codebook whose labels keep it to its community is never on the menu.
-    this.listed = index.codebooks;
+    await loadIndex();
+    // Withdrawn and out-of-season codebooks are left off the menu. (One
+    // whose labels keep it to its community shouldn't be on the list at
+    // all; if one is, it comes off the menu as soon as that is known.)
+    this.listed = offered();
     this.fillMenu();
     const named = ref && this.listed.find((entry) => entry.id === ref.id);
     this.wanted = ref && ref.version ? ref : null;
@@ -124,16 +126,31 @@ export class Vocabulary {
       return false;
     }
     if (attempt !== this.loading) return false;
-    // A codebook on the list that turns out to be for its community only is
-    // treated as if it had been opened by address: usable, not advertised.
+    // Switch over, and switch back if anything that depends on the codebook
+    // can't cope with it, so the page is never left between two.
+    const before = { codebook: this.codebook, labels: this.labels, unlisted: this.unlisted, listed: this.listed };
     this.codebook = codebook;
     this.labels = labels;
-    this.unlisted = byAddress && !this.listed.some((entry) => entry.manifest === codebook.url);
+    // A codebook on the list that turns out to be for its community only is
+    // treated as if it had been opened by address: usable, not advertised.
     if (!conduct(codebook, labels).listed) this.listed = this.listed.filter((entry) => entry.id !== codebook.id);
+    this.unlisted = !this.listed.some((entry) => entry.manifest === codebook.url);
+    try {
+      this.render();
+      this.onChange(codebook);
+    } catch (error) {
+      console.warn(error);
+      Object.assign(this, before);
+      this.status("That codebook can’t be used. This page couldn’t make sense of it.", true);
+      this.fillMenu();
+      if (before.codebook) {
+        this.render();
+        this.onChange(before.codebook);
+      }
+      return false;
+    }
     if (!quiet) this.status("");
     this.fillMenu();
-    this.render();
-    this.onChange(codebook);
     return true;
   }
 
@@ -145,7 +162,9 @@ export class Vocabulary {
     const grid = this.grid();
     const reading = fit(codebook, grid);
     const parts = [];
-    parts.push(`<p class="heard">Heard through <strong>${escapeHTML(credit(codebook))}</strong>’s vocabulary${
+    // Anyone can write any names into a manifest; say when nobody has checked.
+    parts.push(`<p class="heard">Heard through the vocabulary of <strong>${escapeHTML(credit(codebook))}</strong>${
+      this.unlisted ? ' <span class="badge warn">unverified</span>' : ""}${
       codebook.demo ? ' <span class="badge">demonstration</span>' : ""}</p>`);
     if (codebook.statement) parts.push(`<p class="statement">${escapeHTML(codebook.statement)}</p>`);
 
@@ -179,7 +198,7 @@ export class Vocabulary {
       parts.push(`<p class="notice">This link was made with version ${escapeHTML(this.wanted.version)} of this codebook. It is now version ${escapeHTML(codebook.version)}, a different reading, so places will not sound as they did.</p>`);
     }
     if (this.unlisted) {
-      parts.push('<p class="fine">Opened by its address. It isn’t on this page’s list, and this page hasn’t checked who made it.</p>');
+      parts.push('<p class="notice">Opened by its address. It isn’t on this page’s list, so nobody here has checked who made it: the names above are only what the codebook says about itself.</p>');
     }
     $("codebook-about").innerHTML = parts.join("");
   }

@@ -1274,3 +1274,8 @@ body[data-together] .sequence-only { display: none; }
   body.places #heard { order: 5; margin: 12px 12px 0; }
   #vocabulary { order: 4; margin: 12px 12px 0; }
 }
+
+.badge.warn {
+  border-color: var(--danger);
+  color: var(--danger);
+}

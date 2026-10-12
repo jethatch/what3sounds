@@ -17,9 +17,16 @@ export async function loadChords(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Chord data failed to load (${response.status})`);
   const data = await response.json();
+  // Check everything before replacing the table in use, so a bad file
+  // leaves the page as it was.
+  const total = Array.isArray(data.counts) ? data.counts.reduce((sum, count) => sum + count, 0) : -1;
+  if (!Array.isArray(data.names) || data.names.length !== data.counts.length || data.names.length > 65535 ||
+      typeof data.frets !== "string" || data.frets.length !== total * 6 || total < 2) {
+    throw new Error("The chord table isn’t in the form this page reads.");
+  }
   names = data.names;
   frets = data.frets;
-  voicingCount = frets.length / 6;
+  voicingCount = total;
   nameOfVoicing = new Uint16Array(voicingCount);
   let v = 0;
   data.counts.forEach((count, nameIndex) => {

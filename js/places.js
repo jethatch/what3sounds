@@ -68,6 +68,11 @@ function writeHash() {
   // The Journeys page should open with the same grid and vocabulary.
   const carry = new URLSearchParams();
   for (const key of ["gr", "cb", "cbu"]) if (params.has(key)) carry.set(key, params.get(key));
+  // And start a trip from the place being listened to.
+  if (state.at) {
+    carry.set("a", `${state.at.lat.toFixed(5)},${state.at.lng.toFixed(5)}`);
+    if (state.at.label) carry.set("an", state.at.label);
+  }
   document.querySelector('.pages a[href^="./journeys"]').href = `./journeys.html#${carry}`;
 }
 
@@ -137,12 +142,12 @@ function renderPlace() {
   state.items = soundsAt(codebook, grid(), state.at.lat, state.at.lng);
   $("address").hidden = false;
   $("address-number").textContent = addressAt(codebook, grid(), state.at.lat, state.at.lng).toLocaleString("en");
-  $("address-note").textContent = `${state.at.label || formatLatLng(state.at.lat, state.at.lng)}. One ${grid().cell} of ${formatArea(reading.areaM2)}, the size this vocabulary reads. The number is the place’s; everything below is the vocabulary’s.`;
+  $("address-note").textContent = `${state.at.label || formatLatLng(state.at.lat, state.at.lng)}. One ${grid().cell} of ${formatArea(reading.areaM2)}, the size this vocabulary reads: a smaller vocabulary can only tell bigger places apart, so its number is for a bigger cell. The number is the place’s; everything below is the vocabulary’s.`;
   $("now").innerHTML = state.items.map((item) => itemCard(item)).join("");
   $("heard-hint").hidden = true;
   $("hear").disabled = false;
   $("share").disabled = false;
-  if (voice) voice.prepare(state.items).catch(() => toast("Some of this vocabulary’s recordings didn’t load."));
+  if (voice) voice.prepare(state.items);
 }
 
 function setPlace(lat, lng, label, { move = false, play = true } = {}) {
@@ -207,14 +212,21 @@ function onCodebook(codebook) {
   if (state.heard && state.items) hear();
 }
 
+let hearing = 0;
 async function hear() {
   if (!state.items) return;
   const items = state.items;
   const together = vocabulary.codebook.together;
+  const mine = ++hearing;
   state.heard = true;
   $("hear").classList.add("busy");
   try {
-    if (voice) await voice.prepare(items);
+    if (voice) {
+      await voice.prepare(items);
+      // The place, grid or vocabulary changed while the recordings loaded.
+      if (mine !== hearing) return;
+      if (voice.failed) toast(`${voice.failed} of this place’s recordings didn’t load, so there are gaps.`);
+    }
     await player.play({
       bars: together ? 2 : items.length,
       barAt: (bar) => (together ? { items, which: -1 } : { items: [items[bar]], which: bar }),
@@ -223,7 +235,7 @@ async function hear() {
   } catch (error) {
     toast(error.message || "The sound couldn’t start in this browser.");
   } finally {
-    $("hear").classList.remove("busy");
+    if (mine === hearing) $("hear").classList.remove("busy");
   }
 }
 

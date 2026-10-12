@@ -31,7 +31,7 @@ The three demonstrations were written for this project so that there is somethin
 
 1. **Address.** Find the grid cell containing the point, at the cell size the codebook reads. Take the cell's digits (its base cell and one digit per level on H3; its fifth-of-a-face and one digit per level on A5), deal them out every third one first so that neighbours don't sound alike, and read the result as one number. On H3 at level 15 this is exactly the original what3chords number.
 2. **Fit.** A codebook either fixes how many items a place gets, in which case its size sets the finest cell it can tell apart, or fixes the cell size, in which case its size sets how many items a place gets. A codebook in parts gets one item from each part.
-3. **Read.** Write the number out with one digit per item, each digit in the base of the list it picks from. Each digit picks an item.
+3. **Read.** Stretch the number evenly over the vocabulary (so every item can be reached, not only those at the start), then write it out with one digit per item, each digit in the base of the list it picks from. Each digit picks an item.
 4. **Render.** `samples` plays recordings, `ratios` synthesises pitches from frequency ratios, `rhythm` sequences strokes. The guitar codebook has its own renderer: the strummed band from what3chords songs.
 
 The grid can be switched between H3 hexagons and A5 pentagons. A place has a different address on each, so every vocabulary sounds different on each.
@@ -40,11 +40,12 @@ The grid can be switched between H3 hexagons and A5 pentagons. A place has a dif
 
 - A shared link names the codebook and its version (`cb=guitar-chords@1.0.0`), because the same place only sounds the same through the same reading. If the codebook has since changed, the page says so.
 - Codebooks can live on their contributors' own sites. The page's list (`codebooks/index.json`) points at manifests; anyone can also open an unlisted one by its address, and the link then carries that address (`cbu=`).
-- A contributor withdraws a codebook by taking it down. The `revoked` list in `codebooks/index.json` stops the page offering one that browsers may still hold.
+- A contributor withdraws a codebook by taking it down. The `revoked` list in `codebooks/index.json`, which names a codebook by its id or by its manifest's address, takes it off the menu and stops the page playing a copy that browsers may still hold.
+- A codebook opened by its address is marked "unverified": nobody has checked the names it gives for itself.
 
 ## Terms and Local Contexts labels
 
-Each codebook's contributors, statement, terms and [Local Contexts](https://localcontexts.org/) labels are shown beside it. The page also behaves as they ask: no download button where a codebook says not to download or carries a non-commercial label; a community-use-only codebook is never listed; a seasonal one is offered only in its months.
+Each codebook's contributors, statement, terms and [Local Contexts](https://localcontexts.org/) labels are shown beside it. The page also behaves as they ask: no download button where a codebook says not to download or carries a non-commercial label; a community-use-only codebook comes off the menu as soon as the page sees its label (it should not be put on the list at all); a seasonal one is refused outside its months, and left off the menu if the list records those months.
 
 Two limits, stated plainly:
 
