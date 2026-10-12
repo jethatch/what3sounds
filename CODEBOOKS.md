@@ -2,6 +2,8 @@
 
 A codebook is a vocabulary: a set of sounds, with the names of the people who made it and the terms they set. what3sounds reads a place's address through it. This page explains what a codebook is made of and how to offer one.
 
+> **Preview text.** This guide was written by Claude, Anthropic's AI model, working from the authors' design note. It is for preview only: the authors have not yet reviewed it, and it is not yet an invitation or a commitment on their behalf.
+
 Before anything else: **a web page cannot keep anything private.** Whatever a codebook contains can be copied by anyone who opens the page. The question to ask is not "what restrictions should we add" but "is this something we want public." If the answer is no, it should not go into a codebook.
 
 ## What you provide

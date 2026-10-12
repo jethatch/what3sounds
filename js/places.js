@@ -73,7 +73,7 @@ function writeHash() {
     carry.set("a", `${state.at.lat.toFixed(5)},${state.at.lng.toFixed(5)}`);
     if (state.at.label) carry.set("an", state.at.label);
   }
-  document.querySelector('.pages a[href^="./journeys"]').href = `./journeys.html#${carry}`;
+  for (const link of document.querySelectorAll('a[href*="journeys.html"]')) link.href = `./journeys.html#${carry}`;
 }
 
 function readHash() {

@@ -2,6 +2,10 @@
 
 Every place has an address. What it sounds like depends on whose vocabulary you listen through.
 
+**Try it: <https://jethatch.github.io/what3sounds/>**
+
+> **Preview text.** This README, the page's own explanations and the descriptions of the codebooks that ship with it were written by Claude, Anthropic's AI model, working from the authors' design note. They are for preview only and the authors have not yet reviewed them.
+
 what3sounds grew out of [what3chords](https://github.com/jethatch/what3chords-songs), a satire of what3words. what3words has one word list, owned by one company, and presents it as the place's address. what3chords copied that move with one table of guitar chords, so the chords came across as the place's chords, when they are really the guitar's chords applied to the place.
 
 Here the two layers are pulled apart:
@@ -64,7 +68,7 @@ It is a static site with no build step.
 python3 -m http.server 8767
 ```
 
-Then open <http://localhost:8767>. To put it on GitHub Pages, deploy the `main` branch from the root folder. Live sessions need https, which Pages provides.
+Then open <http://localhost:8767>. It is published with GitHub Pages from the `main` branch's root folder, at <https://jethatch.github.io/what3sounds/>. The link-preview tags in both pages (`og:url`, `og:image`) must be absolute, so they name that address; change them if the site moves. Live sessions need https, which Pages provides.
 
 ## What a link contains
 
@@ -104,4 +108,4 @@ tools/make_demos.py writes the demonstrations
 - what3chords: David O'Sullivan, Luke Bergmann, Jim Thatcher and Nick Lally. The guitar chord table and electric guitar samples come from the [original](https://github.com/DOSull/what3chords); their licensing is under discussion with its authors, and until that is settled no licence is granted for reuse of this repository.
 - Acoustic guitar samples: [University of Iowa Electronic Music Studios](https://theremin.music.uiowa.edu/MIS.html). Nylon guitar: [quartertone on Freesound](https://freesound.org/people/quartertone/packs/11573/) (CC BY 4.0). Electric bass: [Karoryfer Samples](https://www.karoryfer.com/karoryfer-samples) (CC0). All as edited for [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments) by Nicholaus Brosowsky (CC BY 3.0), then trimmed and re-encoded.
 - Place search by Nominatim and Photon; road routes from the OSRM demo server; basemap © CARTO, map data © OpenStreetMap contributors. MapLibre GL JS, h3-js, a5-js and Tone.js load from jsDelivr at pinned versions.
-- The idea of plural codebooks, and much of the wording above, is Luke Bergmann's.
+- The idea of plural codebooks, and the terms used for it here, emerged in conversation among the original what3chords authors, driven by Luke Bergmann's lack of a sense of satire.

@@ -6,6 +6,17 @@
   <title>what3sounds</title>
   <meta name="description" content="Every place has an address. What it sounds like depends on whose vocabulary you listen through.">
   <meta name="theme-color" content="#0d0d0f">
+  <!-- Link previews. These need absolute addresses, so they name the site this is published at. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="what3sounds">
+  <meta property="og:title" content="what3sounds">
+  <meta property="og:description" content="Every place has an address. What it sounds like depends on whose vocabulary you listen through.">
+  <meta property="og:url" content="https://jethatch.github.io/what3sounds/">
+  <meta property="og:image" content="https://jethatch.github.io/what3sounds/img/preview.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="One hexagon on a grid, read three ways: as a guitar chord, as a just-intonation ratio and as a rhythm. The words: one address for every place, many vocabularies to hear it through.">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d0d0f'/%3E%3Cpath d='M16 27C10 21 6 15 6 10.5a10 5.5 0 0 1 20 0C26 15 22 21 16 27z' fill='%23ffe14d'/%3E%3C/svg%3E">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,8 +51,8 @@
         </div>
         <p class="tagline">Every place has an address. What it sounds like depends on whose vocabulary you listen through. <button type="button" class="link" id="what-open">What is this?</button></p>
         <nav class="pages" aria-label="Pages">
-          <a href="./" aria-current="page">Places</a>
-          <a href="./journeys.html">Journeys</a>
+          <a href="./" aria-current="page"><strong>Places</strong><span>Hear one place</span></a>
+          <a href="./journeys.html"><strong>Journeys</strong><span>Play a trip</span></a>
         </nav>
       </header>
 
@@ -103,6 +114,7 @@
           <button type="button" class="button hear" id="hear" disabled>▶ Hear it</button>
           <button type="button" class="button quiet" id="share" disabled>Copy link</button>
         </div>
+        <a class="onward" id="to-journeys" href="./journeys.html"><span><strong>Journeys</strong> Start a trip from here and hear it as a song</span><span aria-hidden="true">→</span></a>
       </section>
 
       <footer class="credits">
@@ -132,11 +144,12 @@
     <p>And the address layer is still anonymous: a global grid, applied everywhere from outside. You can change which grid, hexagons or pentagons, but not who drew it. Plural codebooks fix half of the view-from-nowhere problem. They make the other half easier to see.</p>
     <h3>Further reading</h3>
     <ul>
-      <li>Jim Thatcher’s chapter in <a href="https://meatspacepress.com/how-to-run-a-company-like-amazon-and-other-fables/" target="_blank" rel="noopener"><cite>How to Run a City Like Amazon, and Other Fables</cite></a> (Meatspace Press, 2019), free to read.</li>
+      <li>Jim Thatcher, “Address.Error.503”, in <a href="https://meatspacepress.com/how-to-run-a-company-like-amazon-and-other-fables/" target="_blank" rel="noopener"><cite>How to Run a City Like Amazon, and Other Fables</cite></a> (Meatspace Press, 2019), free to read.</li>
       <li>Thatcher, O’Sullivan and Mahmoudi, “<a href="https://doi.org/10.1177/0263775816633195" target="_blank" rel="noopener">Data colonialism through accumulation by dispossession</a>” (<cite>Environment and Planning D: Society and Space</cite>, 2016).</li>
       <li>Donna Haraway, “<a href="https://doi.org/10.2307/3178066" target="_blank" rel="noopener">Situated Knowledges</a>” (<cite>Feminist Studies</cite>, 1988), for the view from nowhere.</li>
       <li><a href="https://localcontexts.org/" target="_blank" rel="noopener">Local Contexts</a>, for the labels communities use to say how their material should be treated.</li>
     </ul>
+    <p class="fine">Preview: the text on this page was written by Claude, Anthropic’s AI model, working from the authors’ design note. The authors have not yet reviewed it.</p>
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js" integrity="sha384-5+cfbwT0iiub6VsQAdn6yz16nr6sDiQoHx6tm4O8OVYXHYOxcffFmCJBL0dgdvGp" crossorigin="anonymous"></script>

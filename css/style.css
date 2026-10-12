@@ -1144,19 +1144,54 @@ dialog.small input { margin-top: 12px; font: 500 13px var(--font-mono); }
 }
 .pages a {
   flex: 1;
-  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 6px;
   border-radius: 4px;
   text-align: center;
-  font-size: 14px;
-  font-weight: 600;
   color: var(--muted);
   text-decoration: none;
 }
-.pages a:hover { color: var(--ink); }
-.pages a[aria-current="page"] {
-  background: var(--ink);
-  color: var(--card);
+.pages a strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
 }
+.pages a span { font-size: 12px; }
+.pages a:hover { background: var(--card); }
+.pages a[aria-current="page"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.pages a[aria-current="page"] strong { color: var(--accent-ink); }
+
+/* The way on from a place to a trip. */
+.onward {
+  order: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--muted);
+  text-decoration: none;
+}
+.onward strong {
+  display: block;
+  font-size: 14px;
+  color: var(--ink);
+}
+.onward > span:last-child { font-size: 20px; color: var(--ink); }
+.onward:hover { border-color: var(--ink); }
 
 .address {
   padding: 10px 12px;

@@ -8,7 +8,7 @@
   {"name": "Jim Thatcher", "role": "the original what3chords"},
   {"name": "Nick Lally", "role": "the original what3chords"}
  ],
- "statement": "The 167,011 guitar chord voicings of the original what3chords, in their original order. Read through this codebook on the hexagon grid, a place has the same three chords as it does there. These are the guitar’s chords laid over the place, not the place’s own; that was the joke, and this page is what came of taking it seriously. Where the table itself was drawn from is not recorded.",
+ "statement": "The 167,011 guitar chord voicings of the original what3chords, in their original order. Read through this codebook on the hexagon grid, a place has the same three chords as it does there. These are the guitar’s chords laid over the place, not the place’s own; that was the joke, and this page is what came of taking it seriously. Where the table itself was drawn from is not recorded. (This description was drafted by Claude for the preview; the four authors have not yet reviewed it.)",
  "terms": {"download": true, "commercial": true, "note": "Licensing of the table and the guitar samples is under discussion with the original authors."},
  "address": {"items": 3, "spread": {"h3": 1, "a5": 4}},
  "renderer": "guitar",
