@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>what3sounds</title>
+  <meta name="description" content="Every place has an address. What it sounds like depends on whose vocabulary you listen through.">
+  <meta name="theme-color" content="#0d0d0f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d0d0f'/%3E%3Cpath d='M16 27C10 21 6 15 6 10.5a10 5.5 0 0 1 20 0C26 15 22 21 16 27z' fill='%23ffe14d'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet" integrity="sha384-uTttxo/aOKbdE5RlD/SPzSDoDmNvGlUYPjONi2MN/b7c9HPSvW07OIuyP7uL6jxK" crossorigin="anonymous">
+  <link href="./css/style.css" rel="stylesheet">
+
+  <script>
+    // Theme before first paint: ?theme=, then the last choice, then the OS.
+    (function () {
+      var theme = new URLSearchParams(location.search).get("theme");
+      try { theme = theme || localStorage.getItem("w3s-theme"); } catch (e) {}
+      if (theme !== "light" && theme !== "dark") {
+        theme = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+</head>
+<body class="places">
+  <div id="app">
+    <aside id="panel">
+      <header class="masthead">
+        <div class="masthead-row">
+          <h1>what3<span>sounds</span></h1>
+          <div class="masthead-actions">
+            <button type="button" id="theme-toggle" class="icon-button" aria-label="Switch between dark and light">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+            </button>
+          </div>
+        </div>
+        <p class="tagline">Every place has an address. What it sounds like depends on whose vocabulary you listen through. <button type="button" class="link" id="what-open">What is this?</button></p>
+        <nav class="pages" aria-label="Pages">
+          <a href="./" aria-current="page">Places</a>
+          <a href="./journeys.html">Journeys</a>
+        </nav>
+      </header>
+
+      <section class="card" id="trip" aria-labelledby="place-title">
+        <h2 id="place-title"><span class="step">1</span>The place</h2>
+        <form class="place" id="place-form" novalidate>
+          <label for="place-input">Find a place</label>
+          <div class="place-row">
+            <input id="place-input" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="A place name, or lat, lng" aria-describedby="place-status">
+            <button type="submit" class="button">Find</button>
+          </div>
+          <p class="place-status" id="place-status" role="status"></p>
+        </form>
+        <p class="hint">Or click anywhere on the map.</p>
+
+        <fieldset class="choice">
+          <legend>Grid</legend>
+          <div class="segmented">
+            <label><input type="radio" name="grid" value="h3" checked><span>Hexagons (H3)</span></label>
+            <label><input type="radio" name="grid" value="a5"><span>Pentagons (A5)</span></label>
+          </div>
+          <p class="explain" id="grid-explain" aria-live="polite"></p>
+        </fieldset>
+
+        <div class="address" id="address" hidden>
+          <p class="address-label">This place’s address, at this vocabulary’s cell size</p>
+          <p class="address-number" id="address-number"></p>
+          <p class="fine" id="address-note"></p>
+        </div>
+      </section>
+
+      <section class="card" id="vocabulary" aria-labelledby="vocabulary-title">
+        <h2 id="vocabulary-title"><span class="step">2</span>The vocabulary</h2>
+        <label class="field" for="codebook">Codebook
+          <select id="codebook"></select>
+        </label>
+        <p class="place-status" id="codebook-status" role="status"></p>
+        <div class="codebook-about" id="codebook-about"></div>
+        <details class="more" id="more-codebook">
+          <summary><span class="more-title">Open another by address</span></summary>
+          <div class="more-body">
+            <form class="place" id="codebook-form" novalidate>
+              <label for="codebook-url">Web address of a codebook’s manifest</label>
+              <div class="place-row">
+                <input id="codebook-url" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://…/manifest.json">
+                <button type="submit" class="button">Open</button>
+              </div>
+            </form>
+            <p class="hint">Codebooks can live on their contributors’ own sites. This page fetches one when asked and plays it; it doesn’t keep a copy.</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="card" id="heard" aria-labelledby="heard-title">
+        <h2 id="heard-title"><span class="step">3</span>What it sounds like</h2>
+        <p class="hint" id="heard-hint">Choose a place to hear it.</p>
+        <div class="now place-now" id="now" aria-live="off"></div>
+        <div class="heard-actions">
+          <button type="button" class="button hear" id="hear" disabled>▶ Hear it</button>
+          <button type="button" class="button quiet" id="share" disabled>Copy link</button>
+        </div>
+      </section>
+
+      <footer class="credits">
+        Grown out of <a href="https://jethatch.github.io/what3chords-songs/" target="_blank" rel="noopener">what3chords</a> by David O’Sullivan, Luke Bergmann, Jim Thatcher and Nick Lally. Each vocabulary is credited to its own contributors above.
+      </footer>
+    </aside>
+
+    <main id="stage">
+      <div id="map" aria-label="Map. Click anywhere to hear that place."></div>
+      <div id="toast" role="alert" hidden></div>
+    </main>
+  </div>
+
+  <div id="loading"><div class="loading-box"><div class="loading-pick"></div><p id="loading-text">Tuning up…</p></div></div>
+
+  <dialog id="what" aria-labelledby="what-title">
+    <form method="dialog"><button class="icon-button dialog-close" aria-label="Close">×</button></form>
+    <h2 id="what-title">What is this?</h2>
+    <p>what3sounds gives every place on Earth an address, and lets many people say what that address sounds like.</p>
+    <p>It grew out of <a href="https://jethatch.github.io/what3chords-songs/" target="_blank" rel="noopener">what3chords</a>, a satire of what3words. what3words has one word list, owned by one company, and presents it as the place’s address. what3chords copied that move with one table of guitar chords, so the chords came across as the place’s chords, when they are really the guitar’s chords applied to the place. The table hides who chose it.</p>
+    <p>Here the two things are pulled apart. The <strong>address</strong> is shared: a point falls in a grid cell, and the cell becomes one large number. The number means nothing by itself. A <strong>codebook</strong> is a vocabulary that someone has contributed, and it reads the number as a few of its own sounds. At a given cell size the same spot always has the same number. It sounds one way through one codebook and another way through the next. Only the address belongs to the place. Each sound belongs to the people who wrote the codebook, and the page says who they are.</p>
+    <p>Codebooks are not assigned by territory. Any vocabulary can be heard anywhere, so it is for its contributors, not this page, to decide whether that is acceptable for their material, and on what terms.</p>
+    <h3>What is here now</h3>
+    <p>One codebook is the guitar chord table of the original what3chords. The others are demonstrations written for this page so that there is something to hear: they are nobody’s tradition, and say so. Real codebooks need contributors. <a href="https://github.com/jethatch/what3sounds/blob/main/CODEBOOKS.md" target="_blank" rel="noopener">How to contribute one</a>.</p>
+    <h3>What this does not do</h3>
+    <p>A web page cannot enforce anything. A codebook’s terms and Local Contexts labels are shown, and the page behaves as they ask (it will hide the download button, or leave a codebook off its list), but anyone can copy what a web page loads. Material that should be restricted should not go into an open web page at all.</p>
+    <p>And the address layer is still anonymous: a global grid, applied everywhere from outside. You can change which grid, hexagons or pentagons, but not who drew it. Plural codebooks fix half of the view-from-nowhere problem. They make the other half easier to see.</p>
+    <h3>Further reading</h3>
+    <ul>
+      <li>Jim Thatcher’s chapter in <a href="https://meatspacepress.com/how-to-run-a-company-like-amazon-and-other-fables/" target="_blank" rel="noopener"><cite>How to Run a City Like Amazon, and Other Fables</cite></a> (Meatspace Press, 2019), free to read.</li>
+      <li>Thatcher, O’Sullivan and Mahmoudi, “<a href="https://doi.org/10.1177/0263775816633195" target="_blank" rel="noopener">Data colonialism through accumulation by dispossession</a>” (<cite>Environment and Planning D: Society and Space</cite>, 2016).</li>
+      <li>Donna Haraway, “<a href="https://doi.org/10.2307/3178066" target="_blank" rel="noopener">Situated Knowledges</a>” (<cite>Feminist Studies</cite>, 1988), for the view from nowhere.</li>
+      <li><a href="https://localcontexts.org/" target="_blank" rel="noopener">Local Contexts</a>, for the labels communities use to say how their material should be treated.</li>
+    </ul>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js" integrity="sha384-5+cfbwT0iiub6VsQAdn6yz16nr6sDiQoHx6tm4O8OVYXHYOxcffFmCJBL0dgdvGp" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/h3-js@4.5.0/dist/h3-js.umd.js" integrity="sha384-btAksX4N/Qw1lEPyJQdtZC59TR3dvM7HgYngL8bCs7Dtysie9D3TiJ0GGFZBbXAy" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/a5-js@0.10.1/dist/a5.umd.js" integrity="sha384-0FTiJ4LTjbRNF/N+wsqL/XhUP5W5VxX75pPgCpWlMl53PW9trEYPQSaXzuWarWRI" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.1.22/build/Tone.js" integrity="sha384-NWoslxaf/3dYwQk+uGziDYJFdsjBpVlU1WpFRexuDFcIk/5PJpCbpVXia2Uikeix" crossorigin="anonymous"></script>
+  <script>
+    // Just after an update, a browser can hold a mix of old and new script
+    // files that don't fit together, and the page then fails before it
+    // starts. Refresh the scripts and reload, once; if that doesn't cure it,
+    // say so instead of sitting on "Tuning up…" for ever.
+    (function () {
+      var started = function () {
+        var loading = document.getElementById("loading");
+        return !loading || loading.classList.contains("done") || loading.classList.contains("failed");
+      };
+      var fail = function () {
+        if (started()) return;
+        var loading = document.getElementById("loading");
+        loading.classList.add("failed");
+        document.getElementById("loading-text").textContent = "The page didn’t start. Check your connection and reload; if it was updated a moment ago, try again in a minute.";
+        var button = document.createElement("button");
+        button.className = "button";
+        button.textContent = "Reload";
+        button.onclick = function () { location.reload(); };
+        document.getElementById("loading-text").after(button);
+      };
+      var recover = function () {
+        if (started()) return;
+        var tried = true;
+        try {
+          tried = sessionStorage.getItem("w3s-refreshed") === "1";
+          // One automatic retry per manual load: set the mark now, clear it once shown as failed.
+          if (tried) sessionStorage.removeItem("w3s-refreshed");
+          else sessionStorage.setItem("w3s-refreshed", "1");
+        } catch (e) { tried = true; }
+        if (tried) return fail();
+        // Keep this list in step with the files in js/.
+        var scripts = ["app", "audio", "band", "chords", "codebooks", "diagram", "geocode", "grid", "link", "live", "patterns", "places", "routing", "vocab-ui", "voices"];
+        Promise.all(scripts.map(function (name) {
+          return fetch("./js/" + name + ".js", { cache: "reload" }).catch(function () {});
+        })).then(function () { location.reload(); });
+      };
+      // Capturing, because a script that fails to download reports the error
+      // on its own element and nowhere else. Errors from anything other than
+      // this page's scripts (map tiles, images) are none of this guard's business.
+      window.addEventListener("error", function (event) {
+        var target = event.target;
+        var ours = target === window || (target && target.tagName === "SCRIPT");
+        if (ours && !/ResizeObserver/.test(event.message || "")) recover();
+      }, true);
+      // And if nothing reports an error but nothing starts either.
+      setTimeout(fail, 45000);
+    })();
+  </script>
+  <script type="module" src="./js/places.js"></script>
+</body>
+</html>

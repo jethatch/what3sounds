@@ -1,0 +1,173 @@
+// A song as a link. Everything needed to rebuild a trip and its sound lives
+// in the URL hash, so a link can be shared with no server behind it.
+
+import { PATTERNS, SIGNATURES, DRUM_STYLES, findPattern } from "./patterns.js";
+import { GUITARS } from "./band.js";
+import { GRIDS } from "./grid.js";
+import { formatLatLng } from "./geocode.js";
+
+const MODES = ["hex", "road"];
+const LENGTHS = ["short", "medium", "long"];
+const MAX_PATH_STOPS = 300;
+const URL_SAFE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+// ---------------------------------------------------------------------------
+// Recorded paths: the encoded-polyline scheme (deltas of rounded
+// coordinates, in 5-bit groups) with an alphabet that needs no escaping.
+// ---------------------------------------------------------------------------
+
+function encodeNumber(value) {
+  let v = value < 0 ? ~(value << 1) : value << 1;
+  let out = "";
+  while (v >= 0x20) {
+    out += URL_SAFE[0x20 | (v & 0x1f)];
+    v >>>= 5;
+  }
+  return out + URL_SAFE[v];
+}
+
+// entries: [{ point: [lat, lng], res }] -> { points, sizes } strings.
+export function encodePath(entries) {
+  // A very long session is thinned evenly so the link stays usable.
+  const step = Math.ceil(entries.length / MAX_PATH_STOPS);
+  const kept = entries.filter((_, i) => i % step === 0 || i === entries.length - 1);
+  let points = "";
+  let previous = [0, 0];
+  const runs = [];
+  for (const { point, res } of kept) {
+    const rounded = [Math.round(point[0] * 1e5), Math.round(point[1] * 1e5)];
+    points += encodeNumber(rounded[0] - previous[0]) + encodeNumber(rounded[1] - previous[1]);
+    previous = rounded;
+    const last = runs[runs.length - 1];
+    if (last && last.res === res) last.count++;
+    else runs.push({ res, count: 1 });
+  }
+  return { points, sizes: runs.map((run) => `${run.res.toString(36)}${run.count}`).join(".") };
+}
+
+// `maxRes` is the finest cell size the route's grid has.
+export function decodePath(points, sizes, maxRes) {
+  const numbers = [];
+  let value = 0;
+  let shift = 0;
+  for (const ch of points) {
+    const group = URL_SAFE.indexOf(ch);
+    if (group < 0) return null;
+    value |= (group & 0x1f) << shift;
+    shift += 5;
+    if (group < 0x20) {
+      numbers.push(value & 1 ? ~(value >> 1) : value >> 1);
+      value = 0;
+      shift = 0;
+    }
+  }
+  if (shift !== 0 || numbers.length < 2 || numbers.length % 2) return null;
+  const count = numbers.length / 2;
+  if (count > MAX_PATH_STOPS + 1) return null;
+  // The sizes must account for exactly as many stops as there are points;
+  // anything else is a damaged or hostile link, and not worth expanding.
+  const resolutions = [];
+  for (const run of (sizes || "").split(".")) {
+    const match = run.match(/^([0-9a-z])(\d{1,4})$/);
+    if (!match || parseInt(match[1], 36) > maxRes || resolutions.length + Number(match[2]) > count) return null;
+    for (let i = 0; i < Number(match[2]); i++) resolutions.push(parseInt(match[1], 36));
+  }
+  if (resolutions.length !== count) return null;
+  const entries = [];
+  let lat = 0;
+  let lng = 0;
+  for (let i = 0; i < numbers.length; i += 2) {
+    lat += numbers[i];
+    lng += numbers[i + 1];
+    const point = [lat / 1e5, lng / 1e5];
+    const res = resolutions[i / 2];
+    if (Math.abs(point[0]) > 90 || Math.abs(point[1]) > 180) return null;
+    entries.push({ point, res });
+  }
+  return entries;
+}
+
+// ---------------------------------------------------------------------------
+// The whole state
+// ---------------------------------------------------------------------------
+
+// Settings only appear once they differ from the defaults, to keep links short.
+export function encodeState(state, includePath) {
+  const params = new URLSearchParams();
+  if (state.grid !== "h3") params.set("gr", state.grid);
+  // The vocabulary and its version are always named: the same place only
+  // sounds the same through the same reading.
+  if (state.codebook) {
+    params.set("cb", `${state.codebook.id}@${state.codebook.version}`);
+    if (state.codebookUnlisted) params.set("cbu", state.codebook.url);
+  }
+  if (state.path) {
+    if (includePath) {
+      const { points, sizes } = encodePath(state.path);
+      params.set("lv", points);
+      params.set("lr", sizes);
+    }
+  } else {
+    for (const [key, place] of [["a", state.start], ["b", state.end]]) {
+      if (!place) continue;
+      params.set(key, `${place.lat.toFixed(5)},${place.lng.toFixed(5)}`);
+      params.set(`${key}n`, place.label);
+    }
+    if (state.mode !== "hex") params.set("m", state.mode);
+    if (state.length !== "medium") params.set("l", state.length);
+  }
+  if (state.signature !== "4/4") params.set("ts", state.signature.replace("/", "-"));
+  if (state.patternId !== PATTERNS[state.signature][0].id) params.set("p", state.patternId);
+  if (state.bpm !== 120) params.set("bpm", state.bpm);
+  if (!state.allItems) params.set("c", "1");
+  if (state.guitar !== GUITARS[0].id) params.set("g", state.guitar);
+  if (state.drums) params.set("d", state.drumStyle === "match" ? "1" : state.drumStyle);
+  if (state.bass) params.set("bs", "1");
+  return params.toString();
+}
+
+// Returns only the fields the hash sets, validated; anything odd is ignored.
+export function decodeHash(hash) {
+  const params = new URLSearchParams(hash.replace(/^#/, ""));
+  const found = {};
+  if (Object.prototype.hasOwnProperty.call(GRIDS, params.get("gr") || "")) found.grid = params.get("gr");
+  const grid = GRIDS[found.grid || "h3"];
+  const named = (params.get("cb") || "").match(/^([a-z0-9][a-z0-9-]{0,59})(?:@(\d+\.\d+\.\d+))?$/);
+  const address = params.get("cbu") || "";
+  if (named || address) {
+    found.codebookRef = {
+      id: named ? named[1] : null,
+      version: named ? named[2] || null : null,
+      url: /^https?:\/\//.test(address) ? address.slice(0, 500) : null,
+    };
+  }
+  const path = params.get("lv") ? decodePath(params.get("lv"), params.get("lr"), grid.maxRes) : null;
+  if (path) {
+    found.path = path;
+  } else {
+    for (const [key, which] of [["a", "start"], ["b", "end"]]) {
+      const match = (params.get(key) || "").match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/);
+      if (!match) continue;
+      const lat = parseFloat(match[1]);
+      const lng = parseFloat(match[2]);
+      if (Math.abs(lat) > 90 || Math.abs(lng) > 180) continue;
+      found[which] = { lat, lng, label: (params.get(`${key}n`) || formatLatLng(lat, lng)).slice(0, 120) };
+    }
+    if (MODES.includes(params.get("m"))) found.mode = params.get("m");
+    if (LENGTHS.includes(params.get("l"))) found.length = params.get("l");
+  }
+  const signature = (params.get("ts") || "").replace("-", "/");
+  if (SIGNATURES.includes(signature)) found.signature = signature;
+  found.patternId = findPattern(found.signature || "4/4", params.get("p")).id;
+  const bpm = parseInt(params.get("bpm"), 10);
+  if (bpm >= 50 && bpm <= 220) found.bpm = bpm;
+  if (params.get("c") === "1") found.allItems = false;
+  if (GUITARS.some((guitar) => guitar.id === params.get("g"))) found.guitar = params.get("g");
+  const drums = params.get("d");
+  if (drums === "1" || DRUM_STYLES.some((style) => style.id === drums)) {
+    found.drums = true;
+    found.drumStyle = drums === "1" ? "match" : drums;
+  }
+  if (params.get("bs") === "1") found.bass = true;
+  return found;
+}

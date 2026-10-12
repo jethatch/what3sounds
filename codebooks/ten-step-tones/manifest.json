@@ -1,0 +1,216 @@
+{
+ "id": "ten-step-tones-demo",
+ "version": "1.0.0",
+ "title": "Ten-step struck tones (demo)",
+ "demo": true,
+ "contributors": [
+  {
+   "name": "the what3sounds project",
+   "role": "wrote this demonstration"
+  }
+ ],
+ "statement": "A demonstration written for this page, and nobody's tradition. Forty-eight recordings of a synthesised struck bar, tuned to ten equal steps in each octave. It is here to show the samples renderer, which plays recordings as they are, and the other way of fitting a vocabulary to the grid: this codebook fixes the size of a place (about a hectare and a half) and lets its own smallness decide how many tones a place gets, which comes to a seven-note phrase.",
+ "terms": {
+  "download": true,
+  "commercial": true
+ },
+ "address": {
+  "resolution": 10
+ },
+ "renderer": "samples",
+ "beats": 1,
+ "items": [
+  {
+   "label": "step 1",
+   "audio": "audio/01.mp3"
+  },
+  {
+   "label": "step 2",
+   "audio": "audio/02.mp3"
+  },
+  {
+   "label": "step 3",
+   "audio": "audio/03.mp3"
+  },
+  {
+   "label": "step 4",
+   "audio": "audio/04.mp3"
+  },
+  {
+   "label": "step 5",
+   "audio": "audio/05.mp3"
+  },
+  {
+   "label": "step 6",
+   "audio": "audio/06.mp3"
+  },
+  {
+   "label": "step 7",
+   "audio": "audio/07.mp3"
+  },
+  {
+   "label": "step 8",
+   "audio": "audio/08.mp3"
+  },
+  {
+   "label": "step 9",
+   "audio": "audio/09.mp3"
+  },
+  {
+   "label": "step 10",
+   "audio": "audio/10.mp3"
+  },
+  {
+   "label": "step 11",
+   "audio": "audio/11.mp3"
+  },
+  {
+   "label": "step 12",
+   "audio": "audio/12.mp3"
+  },
+  {
+   "label": "step 13",
+   "audio": "audio/13.mp3"
+  },
+  {
+   "label": "step 14",
+   "audio": "audio/14.mp3"
+  },
+  {
+   "label": "step 15",
+   "audio": "audio/15.mp3"
+  },
+  {
+   "label": "step 16",
+   "audio": "audio/16.mp3"
+  },
+  {
+   "label": "step 17",
+   "audio": "audio/17.mp3"
+  },
+  {
+   "label": "step 18",
+   "audio": "audio/18.mp3"
+  },
+  {
+   "label": "step 19",
+   "audio": "audio/19.mp3"
+  },
+  {
+   "label": "step 20",
+   "audio": "audio/20.mp3"
+  },
+  {
+   "label": "step 21",
+   "audio": "audio/21.mp3"
+  },
+  {
+   "label": "step 22",
+   "audio": "audio/22.mp3"
+  },
+  {
+   "label": "step 23",
+   "audio": "audio/23.mp3"
+  },
+  {
+   "label": "step 24",
+   "audio": "audio/24.mp3"
+  },
+  {
+   "label": "step 25",
+   "audio": "audio/25.mp3"
+  },
+  {
+   "label": "step 26",
+   "audio": "audio/26.mp3"
+  },
+  {
+   "label": "step 27",
+   "audio": "audio/27.mp3"
+  },
+  {
+   "label": "step 28",
+   "audio": "audio/28.mp3"
+  },
+  {
+   "label": "step 29",
+   "audio": "audio/29.mp3"
+  },
+  {
+   "label": "step 30",
+   "audio": "audio/30.mp3"
+  },
+  {
+   "label": "step 31",
+   "audio": "audio/31.mp3"
+  },
+  {
+   "label": "step 32",
+   "audio": "audio/32.mp3"
+  },
+  {
+   "label": "step 33",
+   "audio": "audio/33.mp3"
+  },
+  {
+   "label": "step 34",
+   "audio": "audio/34.mp3"
+  },
+  {
+   "label": "step 35",
+   "audio": "audio/35.mp3"
+  },
+  {
+   "label": "step 36",
+   "audio": "audio/36.mp3"
+  },
+  {
+   "label": "step 37",
+   "audio": "audio/37.mp3"
+  },
+  {
+   "label": "step 38",
+   "audio": "audio/38.mp3"
+  },
+  {
+   "label": "step 39",
+   "audio": "audio/39.mp3"
+  },
+  {
+   "label": "step 40",
+   "audio": "audio/40.mp3"
+  },
+  {
+   "label": "step 41",
+   "audio": "audio/41.mp3"
+  },
+  {
+   "label": "step 42",
+   "audio": "audio/42.mp3"
+  },
+  {
+   "label": "step 43",
+   "audio": "audio/43.mp3"
+  },
+  {
+   "label": "step 44",
+   "audio": "audio/44.mp3"
+  },
+  {
+   "label": "step 45",
+   "audio": "audio/45.mp3"
+  },
+  {
+   "label": "step 46",
+   "audio": "audio/46.mp3"
+  },
+  {
+   "label": "step 47",
+   "audio": "audio/47.mp3"
+  },
+  {
+   "label": "step 48",
+   "audio": "audio/48.mp3"
+  }
+ ]
+}
