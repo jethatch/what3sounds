@@ -70,6 +70,8 @@ python3 -m http.server 8767
 
 Then open <http://localhost:8767>. It is published with GitHub Pages from the `main` branch's root folder, at <https://jethatch.github.io/what3sounds/>. The link-preview tags in both pages (`og:url`, `og:image`) must be absolute, so they name that address; change them if the site moves. Live sessions need https, which Pages provides.
 
+The map needs WebGL. In a browser that can't provide it (graphics acceleration switched off, some remote desktops and virtual machines), the page runs without the map and says why. Add `?nomap` to the address to see that state.
+
 ## What a link contains
 
 Everything is in the part after `#`; nothing is sent to a server.
@@ -99,6 +101,7 @@ js/app.js           Journeys page
 js/audio.js         the player, offline rendering, live recording
 js/band.js, js/patterns.js, js/chords.js, js/diagram.js   the guitar codebook's band
 js/routing.js, js/live.js, js/link.js, js/geocode.js      trips, live sessions, links, place search
+js/nomap.js         starts the map, or carries on without one
 codebooks/          the list, the guitar manifest and the three demonstrations
 tools/make_demos.py writes the demonstrations
 ```

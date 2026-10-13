@@ -66,7 +66,7 @@
           </div>
           <p class="place-status" id="place-status" role="status"></p>
         </form>
-        <p class="hint">Or click anywhere on the map.</p>
+        <p class="hint with-map">Or click anywhere on the map.</p>
 
         <fieldset class="choice">
           <legend>Grid</legend>
@@ -124,6 +124,11 @@
 
     <main id="stage">
       <div id="map" aria-label="Map. Click anywhere to hear that place."></div>
+      <div id="map-missing" hidden>
+        <p><strong>No map here.</strong> This browser can’t draw it: the map needs graphics acceleration (WebGL), which is switched off or unavailable.</p>
+        <p>Everything else works. Find a place by name or by <code>lat, lng</code>, and hear it through any vocabulary.</p>
+        <p class="fine">To see the map, turn on hardware acceleration in the browser’s settings, or try another browser or device.</p>
+      </div>
       <div id="toast" role="alert" hidden></div>
     </main>
   </div>
@@ -188,7 +193,7 @@
         } catch (e) { tried = true; }
         if (tried) return fail();
         // Keep this list in step with the files in js/.
-        var scripts = ["app", "audio", "band", "chords", "codebooks", "diagram", "geocode", "grid", "link", "live", "patterns", "places", "routing", "vocab-ui", "voices"];
+        var scripts = ["app", "audio", "band", "chords", "codebooks", "diagram", "geocode", "grid", "link", "live", "nomap", "patterns", "places", "routing", "vocab-ui", "voices"];
         Promise.all(scripts.map(function (name) {
           return fetch("./js/" + name + ".js", { cache: "reload" }).catch(function () {});
         })).then(function () { location.reload(); });

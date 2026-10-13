@@ -14,6 +14,7 @@ import { Band, GUITARS, findGuitar } from "./band.js";
 import { Player, LiveRecorder, renderSong, songSeconds, barSlots } from "./audio.js";
 import { LiveSession, liveSupport, paceName } from "./live.js";
 import { encodeState, decodeHash } from "./link.js";
+import { startMap } from "./nomap.js";
 
 const BASEMAPS = {
   dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
@@ -100,6 +101,7 @@ const player = new Player(band);
 // Everything but the guitar codebook is played by a Voice made for it.
 let voice = null;
 let map;
+let mapParts; // where pins and popups come from: the map library, or nothing
 let theme = document.documentElement.dataset.theme;
 let routeRequest = 0;
 let routeAbort = null;
@@ -256,13 +258,16 @@ function initMap() {
   const view = only
     ? { center: [only.lng, clampToMap(only.lat)], zoom: 10 }
     : { center: [-40, 30], zoom: 1.6 };
-  map = new maplibregl.Map({
+  const started = startMap({
     container: "map",
     style: BASEMAPS[theme],
     ...view,
     maxZoom: 22,
     attributionControl: { compact: true },
   });
+  map = started.map;
+  mapParts = started.parts;
+  if (!started.drawn) return;
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
   const locate = new maplibregl.GeolocateControl({ fitBoundsOptions: { maxZoom: 14 } });
   locate.on("geolocate", (fix) => {
@@ -363,7 +368,7 @@ function setMarker(which) {
     return;
   }
   if (!markers[which]) {
-    const marker = new maplibregl.Marker({
+    const marker = new mapParts.Marker({
       element: pinElement(which === "start" ? "A" : "B", which),
       anchor: "bottom",
       draggable: true,
@@ -824,7 +829,7 @@ let shownKm = null; // how far the travelled line has been drawn
 let shownSlot = null;
 
 function placePlayhead(lat, lng, visible) {
-  if (!markers.playhead) markers.playhead = new maplibregl.Marker({ element: playheadElement(), anchor: "center" });
+  if (!markers.playhead) markers.playhead = new mapParts.Marker({ element: playheadElement(), anchor: "center" });
   markers.playhead.setLngLat([lng, clampToMap(lat)]).addTo(map);
   const el = markers.playhead.getElement();
   el.style.visibility = visible ? "" : "hidden";
@@ -1045,7 +1050,7 @@ function openSpot(lat, lng, autoplay) {
     if (action === "hear") playSpot();
     else if (action) setPlace(action, { lat, lng, label: formatLatLng(lat, lng) }, { move: false });
   });
-  const popup = new maplibregl.Popup({ offset: 10, focusAfterOpen: false })
+  const popup = new mapParts.Popup({ offset: 10, focusAfterOpen: false })
     .setLngLat([lng, lat])
     .setDOMContent(content)
     .addTo(map);

@@ -9,6 +9,7 @@ import { geocode, formatLatLng } from "./geocode.js";
 import { Band } from "./band.js";
 import { Voice } from "./voices.js";
 import { Player } from "./audio.js";
+import { startMap } from "./nomap.js";
 
 const BASEMAPS = {
   dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
@@ -29,6 +30,7 @@ const band = new Band();
 const player = new Player(band);
 let voice = null;
 let map;
+let mapParts; // where the pin comes from: the map library, or nothing
 let marker = null;
 let theme = document.documentElement.dataset.theme;
 let searching = null;
@@ -158,7 +160,7 @@ function setPlace(lat, lng, label, { move = false, play = true } = {}) {
     const pin = document.createElement("div");
     pin.className = "marker-pin a";
     pin.innerHTML = '<svg viewBox="0 0 30 38" aria-hidden="true"><path d="M15 37C8 27 2 21 2 14a13 13 0 0 1 26 0c0 7-6 13-13 23z" stroke="#0d0d0f" stroke-width="1.5"/></svg>';
-    marker = new maplibregl.Marker({ element: pin, anchor: "bottom" });
+    marker = new mapParts.Marker({ element: pin, anchor: "bottom" });
   }
   marker.setLngLat([lng, Math.max(-85, Math.min(85, lat))]).addTo(map);
   if (move) map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 11), duration: 900 });
@@ -273,7 +275,7 @@ async function main() {
   const ref = readHash();
   document.querySelector(`input[name="grid"][value="${state.grid}"]`).checked = true;
 
-  map = new maplibregl.Map({
+  const started = startMap({
     container: "map",
     style: BASEMAPS[theme],
     center: state.at ? [state.at.lng, state.at.lat] : [-40, 30],
@@ -281,7 +283,10 @@ async function main() {
     maxZoom: 22,
     attributionControl: { compact: true },
   });
-  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+  map = started.map;
+  mapParts = started.parts;
+  // (Without a map these all do nothing.)
+  map.addControl(new mapParts.NavigationControl({ showCompass: false }), "top-right");
   map.touchZoomRotate.disableRotation();
   map.dragRotate.disable();
   map.on("style.load", addRouteLayers);
