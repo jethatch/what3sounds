@@ -2,7 +2,7 @@
 
 *Written by Claude as a working record of what was built and decided. It is a preview document, not a finished statement by the project's authors.*
 
-Last updated 12 October 2026.
+Last updated 28 October 2026.
 
 This covers two sibling projects:
 
@@ -12,6 +12,13 @@ This covers two sibling projects:
 | what3sounds | github.com/jethatch/what3sounds | https://jethatch.github.io/what3sounds/ |
 
 Both are static sites for GitHub Pages: no build step, no server code, no keyed services.
+
+Two later projects grew out of these and keep their own records in their READMEs (with a list of open issues in `library/ISSUES.md` for the first):
+
+| Project | Repository | Live site |
+|---|---|---|
+| what3birdsongs | github.com/jethatch/what3birdsongs | https://jethatch.github.io/what3birdsongs/ |
+| what3birdsongs, Aotearoa New Zealand | github.com/jethatch/what3birdsongs-nz | https://jethatch.github.io/what3birdsongs-nz/ |
 
 ---
 
@@ -136,9 +143,9 @@ No vocabulary from a real tradition is invented. Those need contributors (`CODEB
 
 ---
 
-## 5. Status (12 October 2026)
+## 5. Status (28 October 2026)
 
-- **what3chords songs**: the "What is this?" panel and the A5 grid are merged into `main` and published. A last, narrowly scoped critic pass before the merge found nothing to fix: H3 behaviour and old links are unchanged.
+- **what3chords songs**: the "What is this?" panel and the A5 grid are merged into `main` and published. A last, narrowly scoped critic pass before the merge found nothing to fix: H3 behaviour and old links are unchanged. Since then: MIDI export (planned routes and live sessions), a Safari fix for the mixer layout, a fix for hidden inputs that let the page scroll, and a page that still works without the map where a browser can't draw it.
 - **what3sounds**: published with GitHub Pages from `main`. Places is the landing page; a two-tab switch under the title and a link under each place's sounds lead to Journeys, carrying the place, grid and vocabulary along.
 - Jim Thatcher's chapter is cited by its title, "Address.Error.503", in both projects.
 - Text written by Claude is marked as preview text in both READMEs, in `CODEBOOKS.md`, in the pages' panels, and in the descriptions of the codebooks that ship with what3sounds. The "What is this?" text in what3chords songs was supplied by Jim Thatcher.
@@ -148,5 +155,6 @@ No vocabulary from a real tradition is invented. Those need contributors (`CODEB
 - Licensing, with the original authors.
 - Review of the preview text by the authors.
 - Listening tests by ear, and tests on real phones, real GPS and Safari.
-- The what3sounds critic has not re-checked the eight fixes made after its review.
+- The what3sounds critic re-checked the fixes made after its review (28 October 2026). Most are sound. Five problems remain to fix: an empty codebook menu (every codebook out of season or withdrawn) breaks the page; a listed but community-only codebook is wrongly badged "unverified"; a link to a withdrawn or out-of-season codebook gives the wrong reason; some raw browser error messages can reach readers; and changing place without playing doesn't cancel a pending play.
+- MIDI files from what3chords songs have not been tried in a music program.
 - No vocabulary from a real tradition ships; those wait for contributors.
